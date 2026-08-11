@@ -1,8 +1,8 @@
-# Connecteur Kafka GenPost
+# Connecteur Kafka Gen
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../../LICENSE.md)&nbsp;
 [![fr](https://img.shields.io/badge/lang-en-red.svg)](README.md)
 
-Le connecteur publie un message sur un topic Kafka depuis Visual TOM.
+La Ressource Générique effectue un contrôle si le message attendu est déjà présent sur un topic Kafka et retourne immediatement un succès/echec.
 
 # Disclaimer
 Aucun support ni garanties ne seront fournis par Absyss SAS pour ce projet et fichiers associes. L'utilisation est a vos propres risques.
@@ -20,52 +20,58 @@ Il est possible de faire appel a des jours de consulting pour l'implementation.
 
 # Consignes
   * Windows :
-    * Placer le fichier `kafkaGenPost.py` dans le repertoire `%ABM_BIN%` (ou votre repertoire de scripts)
+    * Placer le fichier `kafkaGen.py` dans le repertoire `%ABM_BIN%` (ou votre repertoire de scripts)
     * Declarer la queue / application custom sur l'agent (voir guide administrateur)
 
   * Linux/Unix :
-    * Placer le fichier `kafkaGenPost.py` dans le repertoire `$TOM_ADMIN` (ou votre repertoire de scripts)
+    * Placer le fichier `kafkaGen.py` dans le repertoire `$TOM_ADMIN` (ou votre repertoire de scripts)
     * Declarer la queue / application custom sur l'agent (voir guide administrateur)
 
-  * Créer dans Visual TOM une "Ressource Générique" avec la définition suivante ou importer le fichier KafkaGenPost.xml:
+  * Créer dans Visual TOM une "Ressource Générique" avec la définition suivante ou importer le fichier KafkaGen.xml:
    ```
-   vtimport -x -f KafkaGenPost.xml
+   vtimport -x -f KafkaGen.xml
    ```
-   ![Custom application screenshot](screenshots/kafkaGenPost.png?raw=true)
+   ![Custom application screenshot](screenshots/kafkaGen.png?raw=true)
 
 Le script retourne des codes de sortie specifiques :
-- `0` : Message publie avec succes
-- `1` : Erreur de publication / connexion / validation
+- `0` : Message correspondant trouve
+- `1` : Aucun message correspondant / erreur
 
 Description des parametres:
   * `Param 1` BOOTSTRAP_SERVERS : serveurs Kafka (requis), ex: `localhost:9092`
   * `Param 2` TOPIC : nom du topic (requis)
-  * `Param 3` MESSAGE : contenu a publier (requis)
-  * `Param 4` KEY : cle Kafka optionnelle
-  * `Param 5` SECURITY_PROTOCOL : optionnel (`PLAINTEXT` / `SASL_SSL` / `SSL`, defaut `PLAINTEXT`)
-  * `Param 6` SASL_MECHANISM : mecanisme SASL optionnel (ex: `PLAIN`)
-  * `Param 7` USERNAME : utilisateur SASL optionnel
-  * `Param 8` PASSWORD : mot de passe SASL optionnel
-  * `Param 9` SSL_CAFILE : chemin optionnel du certificat CA
+  * `Param 3` GROUP_ID : identifiant du consumer group (requis, cree automatiquement)
+  * `Param 4` EXPECTED_TEXT : chaine attendue dans le message (requis)
+  * `Param 5` COMMIT_MODE : mode de commit optionnel (defaut `0`)
+    * `0` : pas de commit
+    * `1` : commit du lot lu
+    * `2` : commit jusqu'au premier message trouve
+  * `Param 6` EXPECTED_IDS : IDs optionnels attendus, separes par `,`
+  * `Param 7` SECURITY_PROTOCOL : optionnel (`PLAINTEXT` / `SASL_SSL` / `SSL`, defaut `PLAINTEXT`)
+  * `Param 8` SASL_MECHANISM : mecanisme SASL optionnel (ex: `PLAIN`)
+  * `Param 9` USERNAME : utilisateur SASL optionnel
+  * `Param 10` PASSWORD : mot de passe SASL optionnel
+  * `Param 11` SSL_CAFILE : chemin optionnel du certificat CA
 
-Protegez les parametres avec des guillemets `""` (surtout s'ils contiennent des espaces ou caracteres speciaux).
+Protegez les parametres avec des guillemets `""` (surtout s'ils contiennent des espaces, des virgules ou des caracteres speciaux).
 
 Le connecteur fournit une journalisation avec :
 - Horodatage
 - Niveaux de log (INFO, WARNING, ERROR)
-- Statut de publication (partition / offset)
-- Contenu du message jamais affiche dans les logs
+- Statut detaille des operations
+- Contenu des messages jamais affiché dans les logs
 
 Exemple de sortie de log :
 ```
-2026-08-07 11:04:12,298 | INFO | Starting Kafka GenPost publish
+2026-08-07 11:04:12,298 | INFO | Starting Kafka Gen check
 2026-08-07 11:04:12,298 | INFO | Servers           : localhost:9092
 2026-08-07 11:04:12,298 | INFO | Topic             : demo-topic
-2026-08-07 11:04:12,298 | INFO | Key               : (none)
-2026-08-07 11:04:12,298 | INFO | Message           : (not displayed)
+2026-08-07 11:04:12,298 | INFO | Group ID          : vtom-gen
+2026-08-07 11:04:12,298 | INFO | Expected text     : VTOM_ID
 2026-08-07 11:04:12,310 | INFO | Successfully connected to Kafka
-2026-08-07 11:04:12,320 | INFO | Message published (partition=0, offset=14)
-2026-08-07 11:04:12,320 | INFO | Result: OK (code 0)
+2026-08-07 11:04:15,509 | INFO | Assigned partitions: demo-topic:0
+2026-08-07 11:04:15,849 | INFO | Matching message found
+2026-08-07 11:04:15,849 | INFO | Result: OK (code 0)
 ```
 
 # Licence
